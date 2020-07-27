@@ -437,7 +437,7 @@ function resetGame() {
 
     obstacles.forEach((box) => {
         // Remove all obstacles
-        scene.remove(box.parent)
+        scene.remove(box.mesh.parent)
     })
 
     obstacles = []
