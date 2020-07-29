@@ -87,6 +87,9 @@ class Game {
 
         $('#play-text').css('display', 'block')
         $('#ammo-div').fadeOut('fast')
+        $('#fish-div').fadeOut('fast')
+        $('#fish-text').text('0')
+
         scoreText.css('display', 'none')
 
         this.obstacles.forEach((box) => {

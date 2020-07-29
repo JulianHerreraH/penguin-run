@@ -15,7 +15,6 @@ class Player {
         this.rotationAngle = 10
 
         this.bullets = []
-
         this.canShoot = false
         this.ammo = 4
 
@@ -30,7 +29,7 @@ class Player {
         let pos = this.mesh.position
 
         let geo = new THREE.SphereBufferGeometry(9, 6, 5)
-        let mat = new THREE.MeshToonMaterial({ color: 0x039be5 })
+        let mat = new THREE.MeshToonMaterial({ color: environment.COLORS.ice })
         let mesh = new THREE.Mesh(geo, mat)
 
         const y = 40
@@ -41,7 +40,7 @@ class Player {
         let bullet = {
             mesh,
             speed: 15.0,
-            damage: 12.0
+            damage: 10.0
         }
 
         scene.add(bullet.mesh)

@@ -4,6 +4,8 @@
 */
 
 
+// comments 
+
 // Global objects
 let renderer = null,
     scene = null,
@@ -132,7 +134,6 @@ function update() {
         })
 
 
-
         // MOVEMENT
         if (inputManager.moveLeft) {
 
@@ -163,6 +164,7 @@ function update() {
             player.mesh.position.y -= 2.0
 
         }
+
 
         // Boss logic: eat fish, boss appears
         if (player.fishEaten == boss.trigger) {
@@ -202,8 +204,14 @@ function update() {
 
                 // Boss attack if possible
                 if (!boss.attackActive) {
-                    let side = Math.random() < 0.49 ? 'left' : 'right'
-                    boss.attack(side)
+                    //Attack the side where the player is
+                    if (player.mesh.position.x < -25)
+                        boss.attack(boss.ATTACKS.left)
+                    else if (player.mesh.position.x > 25)
+                        boss.attack(boss.ATTACKS.right)
+                    else
+                        boss.attack(boss.ATTACKS.center)
+
                     boss.attackActive = true
                 }
 
@@ -215,7 +223,7 @@ function update() {
                         boss.spikes = []
                         boss.attackActive = false
                     } else {
-                        obs.position.z += game.obstacleSpeed * 1.55
+                        obs.position.z += game.obstacleSpeed * boss.MULTIPLIERS.speed
                     }
 
                     let colliderBox = new THREE.Box3().setFromObject(obs)
@@ -223,7 +231,7 @@ function update() {
 
                     if (collision) {
 
-                        game.score -= game.collisionPenalty * 1.25
+                        game.score -= game.collisionPenalty * boss.MULTIPLIERS.collision
                         scene.remove(obs.parent)
                         boss.spikes.splice(ndx, 1)
                         scoreText.css('color', 'red')

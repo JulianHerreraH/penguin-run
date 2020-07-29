@@ -10,25 +10,51 @@ class Boss {
         this.spikes = []
         this.attackActive = false
         this.introduced = false
+
+        this.ATTACKS = {
+            right: 'RIGHT',
+            left: 'LEFT',
+            center: 'CENTER'
+        }
+
+        this.MULTIPLIERS = {
+            collision: 1.25,
+            speed: 1.6
+        }
+
     }
 
     attack(side) {
 
         let x
-        if (side == 'right') {
-            x = 106
-            for (let i = 0; i < 5; i++) {
-                this.createSpike(x)
-                x -= 40
-            }
 
-        } else if (side == 'left') {
-            x = -106
-            for (let i = 0; i < 5; i++) {
-                this.createSpike(x)
-                x += 40
-            }
+        switch (side) {
+
+            case this.ATTACKS.right:
+                x = 106
+                for (let i = 0; i < 5; i++) {
+                    this.createSpike(x)
+                    x -= 40
+                }
+                break
+
+            case this.ATTACKS.left:
+                x = -106
+                for (let i = 0; i < 5; i++) {
+                    this.createSpike(x)
+                    x += 40
+                }
+                break
+
+            case this.ATTACKS.center:
+                x = -50
+                for (let i = 0; i < 4; i++) {
+                    this.createSpike(x)
+                    x += 35
+                }
+                break
         }
+
     }
 
     createSpike(posX) {
@@ -98,11 +124,6 @@ class Boss {
 
         $('#ammo-div').fadeOut('fast')
 
-
-        player.bullets.forEach((bullet) => {
-            scene.remove(bullet.mesh)
-        })
-
         setTimeout(() => {
 
             $('#message').css('display', 'none')
@@ -118,6 +139,10 @@ class Boss {
         this.spikes.forEach((obs) => {
             scene.remove(obs.parent)
         })
+        player.bullets.forEach((bullet) => {
+            scene.remove(bullet.mesh)
+        })
+
         this.introduced = false
         this.health = 350
         this.attackActive = false

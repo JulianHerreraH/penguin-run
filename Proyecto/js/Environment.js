@@ -11,6 +11,15 @@ class Environment {
         this.sunShader = null
         // Use SimplexNoise Library to generate noisy data
         this.simplex = new SimplexNoise(5)
+
+        this.COLORS = {
+            purple: 0x5472d3,
+            lightBlue: 0x4fc3f7,
+            blue: 0x29b6f6,
+            ice: 0x039be5,
+            water: 0x002171,
+            sun: 0xff6e7f,
+        }
     }
 
 
@@ -119,14 +128,14 @@ class Environment {
 
             //Assign colors to the faces
             if (max <= 0)
-                return face.color.set(0x002171) // water
+                return face.color.set(this.COLORS.water)
             if (max <= 1.5)
-                return face.color.set(0x5472d3) // Base
+                return face.color.set(this.COLORS.purple) // Base
             if (max <= 3.5)
-                return face.color.set(0x4fc3f7) // Mid
+                return face.color.set(this.COLORS.lightBlue) // Mid
             if (max <= 5)
-                return face.color.set(0x29b6f6) // Mid-Top
-            face.color.set(0x039be5) // Tops
+                return face.color.set(this.COLORS.blue) // Mid-Top
+            face.color.set(this.COLORS.ice) // Tops
         })
 
         planeGeo.colorsNeedUpdate = true
@@ -202,7 +211,7 @@ class Environment {
      */
     initSun(radius) {
         let mat = new THREE.MeshLambertMaterial({
-            color: 0xff6e7f,
+            color: this.COLORS.sun,
             flatShading: true,
             //wireframe: true
         })
