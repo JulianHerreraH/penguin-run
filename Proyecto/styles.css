@@ -38,6 +38,37 @@ body {
   display: none;
 }
 
+#boss {
+  display: none;
+  color: red;
+}
+
+#fish-div {
+  position: absolute;
+  bottom: 10%;
+  left: 25%;
+  padding-left: 1.5rem;
+  text-align: left;
+  align-items: left;
+}
+
+#fish-div span,img {
+  display: inline-block!important;
+}
+
+#ammo-div {
+  position: absolute;
+  bottom: 10%;
+  right: 25%;
+  padding-right: 1.5rem;
+  text-align: right;
+  align-items: right;
+}
+
+#ammo-div span,img {
+  display: inline-block!important;
+}
+
 
 #loading {
 color: white;

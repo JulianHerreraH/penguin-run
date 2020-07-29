@@ -3,46 +3,38 @@
     Graficas Computacionales
 */
 
+
+
+
+
+// TODO: when orca kills you
+// oervall text color
+
+
 // Global objects
 let renderer = null,
     scene = null,
     camera = null,
     controls = null,
     clock = null,
-    gltfLoader = null
+    gltfLoader = null,
+    stats = null
 
 // Animation mixers array
 let mixers = []
 // Array of seagull 3D objects
 let seagulls = []
-
-// Extension of THREE JS shaders
-let sunShader
-let planeShader
-
-// Movement flags
-let moveLeft = false
-let moveRight = false
-let canJump = false
-let isInvulnerable = false
-// Pressed ENTER flag
-let gameStarted = false
-let gameRestarted = false
-
+// Screenshaker utility global variable
 let screenShake
-
-// Global game variables
-let score
+// Global score HTML element
 let scoreText
 
+// Global objects
 let player
-
-let obstacles = []
-let obstacleSpeed = 10
-let collisionPenalty
-let lastObstaclePos = 0
-let countObstacles = 0
-
+let game
+let inputManager
+let environment
+let boss
 
 
 /**
@@ -53,129 +45,265 @@ function update() {
     // Game constants
     const delta = 5 * clock.getDelta()
 
-    const rotateAnglePlayer = degToRad(10)
-    const moveDistance = 30 * delta
-    const jumpDistance = 80
-    const posYInitital = 10
+    const rotateAnglePlayer = degToRad(player.rotationAngle)
+    const moveDistance = player.moveDistance * delta
 
-    const scoreIncrement = 0.3
-    const maxObstacles = 12
+    const scoreIncrement = 0.33
     const baseSpeed = 10
-    const scoreLeveler = 500
+
 
     // Logic for when the game starts
-    if (gameStarted) {
+    if (game.started) {
 
         // GAME OVER
-        if (score <= 0) {
-            resetGame()
+        if (game.score <= 0) {
+            game.reset()
         }
 
-        score += scoreIncrement
+        game.score += scoreIncrement
         // Update score text element
-        scoreText.text(score.toFixed())
+        scoreText.text(game.score.toFixed())
 
         // CREATION OF OBSTACLES    
-        if (Math.random() < 0.06 && obstacles.length < maxObstacles)
+        if (Math.random() < 0.06 && game.obstacles.length < game.maxObstacles && !boss.isPresent)
             createObstacle()
 
-        // Deal with socre penalties
-        if (score.toFixed() < 120)
-            collisionPenalty = 30
+        // Deal with score penalties
+        if (game.score.toFixed() < 120)
+            game.collisionPenalty = 30
         else
-            collisionPenalty = score.toFixed() * 0.25
+            game.collisionPenalty = game.score.toFixed() * 0.21
 
         // Increment obstacle speed as the score increases
-        if ((score.toFixed() % scoreLeveler) == 0)
-            obstacleSpeed = baseSpeed +
-                ((score.toFixed() / scoreLeveler) * 0.7)
+        if ((game.score.toFixed() % game.leveler) == 0)
+            game.obstacleSpeed = baseSpeed +
+                ((game.score.toFixed() / game.leveler) * 0.7)
 
 
         // COLLISIONS
-        let playerCollider = new THREE.Box3().setFromObject(player)
+        let playerCollider = new THREE.Box3().setFromObject(player.mesh)
         // Slightly reduce the size of the collider
         playerCollider.expandByScalar(-3.8)
 
-        obstacles.forEach((obs, ndx) => {
+
+        game.obstacles.forEach((obs, ndx) => {
             // Remove obstacle from the scene and array
             if (obs.mesh.position.z > camera.position.z) {
                 scene.remove(obs.mesh.parent) //parent is the gltf.scene
-                obstacles.splice(ndx, 1)
+                game.obstacles.splice(ndx, 1)
             } else {
-                obs.mesh.position.z += obstacleSpeed
+                obs.mesh.position.z += game.obstacleSpeed
             }
 
             let colliderBox = new THREE.Box3().setFromObject(obs.mesh)
             let collision = playerCollider.intersectsBox(colliderBox)
-            // Reduce score and remove 
+
             if (collision) {
 
                 if (obs.type == 'fish') {
 
+                    player.fishEaten += 1
+                    // Change HTML text
                     $('#message').css('display', 'block')
                     $('#message').css('color', 'green')
                     $('#message').text('Invulnerable!')
+                    $('#fish-text').text(`${player.fishEaten}x`)
 
                     scene.remove(obs.mesh.parent)
-                    obstacles.splice(ndx, 1)
-                    isInvulnerable = true
+                    game.obstacles.splice(ndx, 1)
+                    player.isInvulnerable = true
 
+                    // Make player vulnerable again, hide text
                     setTimeout(() => {
                         $('#message').css('display', 'none')
-                        isInvulnerable = false
+                        player.isInvulnerable = false
                     }, 2500)
 
-                } else if (obs.type == 'spike' && !isInvulnerable) {
-                    score -= collisionPenalty
+                } else if (obs.type == 'spike' && !player.isInvulnerable) {
+
+                    game.score -= game.collisionPenalty
                     scene.remove(obs.mesh.parent)
-                    obstacles.splice(ndx, 1)
+                    game.obstacles.splice(ndx, 1)
                     scoreText.css('color', 'red')
-                    changeTextColor('white')
-                    shakeCamera([0, 0, 6], 300)
+
+                    setTimeout(() => {
+                        scoreText.css('color', 'white')
+                    }, 550)
+
+                    shakeCamera([0, 0, 6.5], 300)
+
                 }
 
             }
 
         })
 
+
+
         // MOVEMENT
-        if (moveLeft) {
+        if (inputManager.moveLeft) {
 
-            if (player.position.x > -105)
-                player.position.x -= moveDistance
+            if (player.mesh.position.x > -105)
+                player.mesh.position.x -= moveDistance
 
-            if (player.rotation.y > -rotateAnglePlayer)
-                player.rotation.y -= degToRad(0.8)
+            if (player.mesh.rotation.y > -rotateAnglePlayer)
+                player.mesh.rotation.y -= degToRad(0.8)
 
 
-        } if (moveRight) {
+        } if (inputManager.moveRight) {
 
-            if (player.position.x < 105)
-                player.position.x += moveDistance
+            if (player.mesh.position.x < 105)
+                player.mesh.position.x += moveDistance
 
-            if (player.rotation.y < rotateAnglePlayer)
-                player.rotation.y += degToRad(0.8)
+            if (player.mesh.rotation.y < rotateAnglePlayer)
+                player.mesh.rotation.y += degToRad(0.8)
 
         }
 
         // Jump
-        if (canJump && (player.position.y == posYInitital)) {
-            player.position.y += jumpDistance
-            canJump = false
+        if (inputManager.canJump && (player.mesh.position.y == player.posYInitital)) {
+            player.mesh.position.y += player.jumpDistance
+            inputManager.canJump = false
         }
-        // Return player to starting position
-        if (player.position.y > posYInitital) {
-            player.position.y -= 2.0
+        // Return player to starting position after jump
+        if (player.mesh.position.y > player.posYInitital) {
+            player.mesh.position.y -= 2.0
+
+        }
+
+        // Boss logic: eat fish, boss appears
+        if (player.fishEaten == boss.trigger) {
+
+            // Remove other obstacles present
+            game.obstacles.forEach((box) => {
+                scene.remove(box.mesh.parent)
+            })
+
+            boss.isPresent = true
+            boss.mesh.position.y = 0
+
+            $('#message').css('display', 'block')
+
+            if (!boss.introduced) {
+
+                boss.playAudio('intro')
+                boss.introduced = true
+
+                // Titles
+                $('#boss').fadeIn()
+                $('#message').css('color', 'white')
+                $('#ammo-div').fadeIn('slow')
+
+
+                setTimeout(() => {
+                    $('#boss').fadeOut()
+                }, 5000)
+
+            }
+
+            player.canShoot = true
+
+            if (boss.health > 0) {
+
+                $('#message').text(`HP: ${boss.health}`)
+
+                // Boss attack if possible
+                if (!boss.attackActive) {
+                    let side = Math.random() < 0.49 ? 'left' : 'right'
+                    boss.attack(side)
+                    boss.attackActive = true
+                }
+
+                // Move and check collision of boss' attacks
+                boss.spikes.forEach((obs, ndx) => {
+
+                    if (obs.position.z >= camera.position.z) {
+                        scene.remove(obs.parent)
+                        boss.spikes = []
+                        boss.attackActive = false
+                    } else {
+                        obs.position.z += game.obstacleSpeed * 1.55
+                    }
+
+                    let colliderBox = new THREE.Box3().setFromObject(obs)
+                    let collision = playerCollider.intersectsBox(colliderBox)
+
+                    if (collision) {
+
+                        game.score -= game.collisionPenalty * 1.25
+                        scene.remove(obs.parent)
+                        boss.spikes.splice(ndx, 1)
+                        scoreText.css('color', 'red')
+
+                        setTimeout(() => {
+                            scoreText.css('color', 'white')
+                        }, 550)
+
+                        shakeCamera([0, 0, 6.5], 300)
+                    }
+
+                })
+
+                // Init boss collider
+                let bossCollider = new THREE.Box3().setFromObject(boss.mesh)
+
+                // Deal with player attacks
+                if (player.canShoot) {
+
+                    const ammo = player.ammo - player.bullets.length
+                    $('#ammo-text').text(`${ammo}x`)
+
+                    if (inputManager.canShoot) {
+
+                        if (player.bullets.length < player.ammo) {
+                            player.shoot()
+                            inputManager.canShoot = false
+                        }
+
+                    }
+
+                    // Move bullets and check collisions
+                    player.bullets.forEach((bullet, ndx) => {
+
+                        if (bullet.mesh.position.z < boss.mesh.position.z - 100) {
+                            scene.remove(bullet.mesh)
+                            player.bullets.splice(ndx, 1)
+                        } else {
+                            bullet.mesh.position.z -= bullet.speed
+                        }
+
+                        let bulletCollider = new THREE.Box3().setFromObject(bullet.mesh)
+                        let isHit = bossCollider.intersectsBox(bulletCollider)
+
+                        if (isHit) {
+
+                            boss.health -= bullet.damage
+                            boss.playAudio('hit')
+
+                            scene.remove(bullet.mesh)
+                            player.bullets.splice(ndx, 1)
+
+                        }
+
+                    })
+                }
+
+            } else {
+
+                boss.mesh.rotation.z -= delta * 2
+                boss.onDeath()
+
+            }
 
         }
 
     }
 
     // Small animation for game over
-    if (gameRestarted) {
-        player.position.y = 20
-        player.rotation.y = degToRad(180)
-        player.rotation.z += delta * 0.25
+    if (game.restarted) {
+        player.mesh.position.y = 20
+        player.mesh.rotation.y = degToRad(180)
+        player.mesh.rotation.z += delta * 0.25
     }
 
     // Animations' mixers
@@ -184,14 +312,14 @@ function update() {
     })
 
     // Change time value in shaders' uniforms
-    if (planeShader) {
-        planeShader.uniforms.time.value += delta * 0.2
-        sunShader.uniforms.time.value += delta * 0.05
+    if (environment.planeShader) {
+        environment.planeShader.uniforms.time.value += delta * 0.2
+        environment.sunShader.uniforms.time.value += delta * 0.05
     }
 
-    // Move seagulls, reset position once they reach the limit
+    // Move seagulls, reset position once they reach the screen limit
     seagulls.forEach((obj) => {
-        if (obj.scene.children[0].position.x >= 3600) {
+        if (obj.scene.children[0].position.x >= 4000) {
             obj.scene.children[0].position.x = obj.positionReset + getRandomFloat(-100, 100)
         }
         obj.scene.children[0].position.x += delta * 55
@@ -210,6 +338,10 @@ function run() {
     // Render the scene
     renderer.render(scene, camera)
 
+    stats.begin();
+    // monitored code goes here
+    stats.end();
+
     update()
 
     // Screen shake function update
@@ -217,7 +349,8 @@ function run() {
 }
 
 /**
- * Initializes the main components of the scene
+ * 
+ * @param {HTMLElement} canvas 
  */
 function createScene(canvas) {
 
@@ -246,23 +379,23 @@ function createScene(canvas) {
     scene.add(camera)
 
     // Main light for shadows
-    let directionalLight = new THREE.DirectionalLight(0xffffff, .85);
+    let directionalLight = new THREE.DirectionalLight(0xffffff, .85)
     directionalLight.position.set(0, 400, 400)
     // Shadows
     directionalLight.castShadow = true
-    directionalLight.shadow.camera.left = -400;
-    directionalLight.shadow.camera.right = 400;
-    directionalLight.shadow.camera.top = 400;
-    directionalLight.shadow.camera.bottom = -400;
-    directionalLight.shadow.camera.near = 1;
-    directionalLight.shadow.camera.far = 10000;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
+    directionalLight.shadow.camera.left = -400
+    directionalLight.shadow.camera.right = 400
+    directionalLight.shadow.camera.top = 400
+    directionalLight.shadow.camera.bottom = -400
+    directionalLight.shadow.camera.near = 1
+    directionalLight.shadow.camera.far = 10000
+    directionalLight.shadow.mapSize.width = 2048
+    directionalLight.shadow.mapSize.height = 2048
     // Add main light
-    scene.add(directionalLight);
+    scene.add(directionalLight)
 
     // Hemisphere Light to make the scene more vibrant
-    let hemisphereLight = new THREE.HemisphereLight(0xfc7384, 0xd0c8dd, 0.7);
+    let hemisphereLight = new THREE.HemisphereLight(0xfc7384, 0xd0c8dd, 0.7)
     scene.add(hemisphereLight)
 
 
@@ -280,6 +413,8 @@ function createScene(canvas) {
     const bearUrl = './models/Bear/bear.gltf'
     const seagullUrl = './models/Seagull/seagull.gltf'
     const walrusUrl = './models/Walrus/walrus.gltf'
+    const orczillaUrl = './models/Orczilla/scene.gltf'
+
 
     // Define models' properties
     let objects = [
@@ -323,33 +458,44 @@ function createScene(canvas) {
             name: 'walrus',
             animated: false,
         },
+        orczilla = {
+            url: orczillaUrl,
+            scale: [0.2, 0.2, 0.2],
+            rotation: [degToRad(-90), 0, 0],
+            position: [0, -500, -1000],
+            name: 'orczilla',
+            animated: true,
+        }
     ]
 
     loadGLTFModels(objects)
-
 
     loadManager.onLoad = () => {
 
         loadingElem.style.display = 'none'
         $('#play-text').css('display', 'block')
 
-        // Show play area
-        initPlane(planeTexture, 6)
+        //Init objects
+        game = new Game()
+        inputManager = new InputManager()
+        environment = new Environment()
+
+        // Show play plane
+        environment.initPlane(planeTexture, 6)
+        // Add sun in the backgound
+        environment.initSun(1100)
 
         //Add terrain
-        const texture = generateNoiseTexture()
-        const terrain = generateTerrain(texture)
+        const texture = environment.generateNoiseTexture()
+        const terrain = environment.generateTerrain(texture)
         terrain.rotation.x = degToRad(-90)
         scene.add(terrain)
 
-        // Add sun in the backgound
-        initSun(1100)
-
         // Listen to ENTER press to start game
         document.addEventListener('keydown', (event) => {
-            if (event.which == 13 && !gameStarted) {
-                initGame()
-                gameStarted = true
+            if (event.which == 13 && !game.started) {
+                game.init()
+                game.started = true
             }
         })
 
@@ -357,9 +503,14 @@ function createScene(canvas) {
         // controls.target.set(0, 0, 0)
         // controls.update()
 
-        // In case window is resized
-        window.addEventListener('resize', onWindowResize);
+        stats = new Stats();
+        stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+        document.body.appendChild(stats.dom);
 
+        // In case window is resized
+        window.addEventListener('resize', onWindowResize)
+
+        // Init screenshake utility
         screenShake = ScreenShake()
 
         clock = new THREE.Clock()
@@ -376,129 +527,20 @@ function createScene(canvas) {
 
 }
 
-
-
-/******************GAME************************** */
-
-function initGame() {
-
-    // init score
-    score = 1
-
-    // Hide texts
-    $('#play-text').css('display', 'none')
-    $('#message').css('display', 'none')
-    scoreText = $('#score')
-    scoreText.css('display', 'block')
-
-    //Background music
-    if (!gameRestarted) {
-        console.log('music')
-        const listener = new THREE.AudioListener()
-        camera.add(listener)
-        const sound = new THREE.Audio(listener)
-        const audioLoader = new THREE.AudioLoader()
-        audioLoader.load('./sounds/background.mp3', function (buffer) {
-            sound.setBuffer(buffer)
-            sound.setLoop(true)
-            sound.setVolume(0.15)
-            sound.play()
-        })
-        // Effect for the music info element
-        const infoDiv = $('#music')
-        setTimeout(() => {
-            infoDiv.fadeIn('slow')
-            infoDiv.css('display', 'flex')
-        }, 1500)
-
-        // Listen to key presses
-        document.addEventListener('keydown', onKeyDown, false);
-        document.addEventListener('keyup', onKeyUp, false);
-
-    } else {
-        gameRestarted = false
-        player.position.x = 0
-        player.position.y = 10
-        player.rotation.set(degToRad(-90), 0, degToRad(90))
-    }
-
-}
-
-
-function resetGame() {
-
-    gameStarted = false
-    gameRestarted = true
-
-    $('#message').css('display', 'block')
-    $('#message').text('GAME OVER')
-    $('#play-text').css('display', 'block')
-    scoreText.css('display', 'none')
-
-    obstacles.forEach((box) => {
-        // Remove all obstacles
-        scene.remove(box.mesh.parent)
-    })
-
-    obstacles = []
-
-}
-
-
+/**
+ * Uses ScreenShake util to move camera
+ * @param {Array} vector
+ * @param {number} duration 
+ */
 function shakeCamera(vector, duration) {
     screenShake.shake(camera, new THREE.Vector3(...vector), duration)
 }
 
 
 
-/******************INPUTS************************** */
-
-function onKeyDown(event) {
-    switch (event.keyCode) {
-
-
-        case 37: // left
-        case 65: // a
-            moveLeft = true;
-            break;
-
-        case 39: // right
-        case 68: // d
-            moveRight = true;
-            break;
-
-        case 32: // space
-            //if (canJump === true) 
-            canJump = true;
-            break;
-    }
-
-}
-
-function onKeyUp(event) {
-
-    switch (event.keyCode) {
-
-        case 37: // left
-        case 65: // a
-            moveLeft = false;
-            break;
-
-        case 39: // right
-        case 68: // d
-            moveRight = false;
-            break;
-
-    }
-
-}
-
-
-
-/******************ENVIRONMENT************************** */
-
 /**
- * Loads a list of GLTF models
+ * Loads and adds to scene a list of GLTF models with their data
+ * @param {Array} objs 
  */
 function loadGLTFModels(objs) {
 
@@ -507,7 +549,10 @@ function loadGLTFModels(objs) {
         gltfLoader.load(obj.url, function (gltf) {
 
             if (obj.name === 'player') {
-                player = gltf.scene.children[0]
+                player = new Player(gltf.scene.children[0])
+            }
+            if (obj.name === 'orczilla') {
+                boss = new Boss(gltf.scene.children[0])
             }
 
             if (obj.name === 'seagull') {
@@ -546,7 +591,7 @@ function loadGLTFModels(objs) {
 
 
 /**
- * Create a obstacle from a model
+ * Loads and adds a GLTF to use as obstacle
  */
 function createObstacle() {
 
@@ -556,12 +601,12 @@ function createObstacle() {
     const friend = 'fish'
     const enemy = 'spike'
 
-    if (countObstacles == 18) {
+    if (game.obstacleCounter == 18) {
         type = friend
         url = './models/Fish/fish.gltf'
-        countObstacles = 0
+        game.obstacleCounter = 0
     } else {
-        countObstacles += 1
+        game.obstacleCounter += 1
         type = enemy
         url = './models/Spikes/spikeVertical.gltf'
     }
@@ -594,282 +639,24 @@ function createObstacle() {
 
         }
 
-
-        while (lastObstaclePos == x) {
+        while (game.lastObstaclePos == x) {
             x = getRandomFloat(-105, 106)
         }
 
         gltf.scene.children[0].position.set(x, y, z)
 
-        lastObstaclePos = x
+        game.lastObstaclePos = x
 
         let obstacle = {
             mesh: gltf.scene.children[0],
             type
         }
 
-        obstacles.push(obstacle)
+        game.obstacles.push(obstacle)
         scene.add(gltf.scene)
 
     })
 
-}
 
-
-/**
- * Plane for the penguin
- */
-function initPlane(t1, maxPlanes) {
-
-    t1.wrapS = THREE.RepeatWrapping;
-    t1.wrapT = THREE.RepeatWrapping;
-    t1.repeat.set(1, maxPlanes)
-
-    const mat = new THREE.MeshToonMaterial({
-        map: t1,
-        side: THREE.DoubleSide
-    })
-
-    mat.onBeforeCompile = (shader) => {
-        shader.uniforms.time = { value: 0 }
-        shader.vertexShader = `
-         uniform float time;
-         ` + shader.vertexShader
-        const token = '#include <begin_vertex>'
-        const customTransform = `
-        vec3 transformed = vec3(position);
-        transformed.x = position.x + sin(position.y*10.0 + time*10.0)*1.2;
-        transformed.y = position.y + sin(position.y*5.0 + time*10.0)*5.0;
-        `
-        shader.vertexShader =
-            shader.vertexShader.replace(token, customTransform)
-        planeShader = shader
-    }
-
-    const height = 300
-
-    let geo = new THREE.PlaneBufferGeometry(250, height * maxPlanes, 32, 32);
-
-    let plane = new THREE.Mesh(geo, mat)
-
-    plane.position.z = -200
-    plane.position.y = 0
-    plane.rotation.x = degToRad(90)
-    plane.receiveShadow = true
-    scene.add(plane)
-
-}
-
-
-/**
- * Initialize sun object that shines in the background
- */
-function initSun(radius) {
-    let mat = new THREE.MeshLambertMaterial({
-        color: 0xff6e7f,
-        flatShading: true,
-        //wireframe: true
-    })
-
-    mat.onBeforeCompile = (shader) => {
-        shader.uniforms.time = { value: 0 }
-        shader.vertexShader = `
-         uniform float time;
-         ` + shader.vertexShader
-        const token = '#include <begin_vertex>'
-        const customTransform = `
-            vec3 transformed = vec3(position);
-            transformed.x = position.x + sin(position.x*15.0 + time*8.0)*15.0;
-            transformed.y = position.y + sin(position.x*15.0 + time*8.0)*15.0;
-            `
-        shader.vertexShader =
-            shader.vertexShader.replace(token, customTransform)
-        sunShader = shader
-
-    }
-
-    let geo = new THREE.SphereBufferGeometry(radius, 16, 16)
-    let mesh = new THREE.Mesh(geo, mat)
-
-    mesh.position.x = 350
-    mesh.position.y = -50
-    mesh.position.z = -3500
-
-    mesh.receiveShadow = true
-
-    scene.add(mesh)
-}
-
-
-
-/******************TERRAIN************************** */
-// Adapted from: https://blog.mozvr.com/low-poly-style-terrain-generation/
-
-// Use SimplexNoise Library to generate noisy data
-let simplex = new SimplexNoise(5)
-
-/**
- * Utility function for the noise
- */
-function noise(nx, ny) {
-    // Rescale from -1.0:+1.0 to 0.0:1.0
-    return simplex.noise2D(nx, ny) / 2 + 0.5;
-}
-
-/**
- * Utiility function for the noise
- * Stacks noisefields
- */
-function octave(nx, ny, octaves) {
-
-    let val = 0
-    let freq = 1
-    let max = 0
-    let amp = 1
-
-    for (let i = 0; i < octaves; i++) {
-
-        val += noise(nx * freq, ny * freq) * amp
-        max += amp
-        amp /= 2
-        freq *= 2
-
-    }
-
-    return val / max;
-
-}
-
-/**
- * Generates a texture from the noise data
- */
-function generateNoiseTexture() {
-
-    // Hidden debug canvas to generate texture 
-    const canvasElement = document.getElementById('debug-canvas')
-    const c = canvasElement.getContext('2d')
-
-    for (let i = 0; i < canvasElement.width; i++) {
-
-        for (let j = 0; j < canvasElement.height; j++) {
-
-            let v = octave(i / canvasElement.width, j / canvasElement.height, 16)
-            const per = (100 * v).toFixed(2) + '%'
-            c.fillStyle = `rgb(${per},${per},${per})`
-            c.fillRect(i, j, 1, 1)
-
-        }
-
-    }
-
-    return c.getImageData(0, 0, canvasElement.width, canvasElement.height)
-
-}
-
-/**
- * Generates a plane terrain from noise texture
- * Receives the texture data
- */
-function generateTerrain(data) {
-
-    const planeGeo = new THREE.PlaneGeometry(data.width, data.height + 15, data.width, data.height + 1)
-
-    for (let j = 0; j < data.height; j++) {
-
-        for (let i = 0; i < data.width; i++) {
-
-            const n = (j * (data.width) + i)
-            const nn = (j * (data.width + 1) + i)
-            const col = data.data[n * 4]
-            const v1 = planeGeo.vertices[nn]
-
-            v1.z = map(col, 0, 255, -10, 10)
-
-        }
-    }
-
-    planeGeo.faces.forEach(face => {
-
-        const a = planeGeo.vertices[face.a]
-        const b = planeGeo.vertices[face.b]
-        const c = planeGeo.vertices[face.c]
-        const avg = (a.z + b.z + c.z) / 3
-        const max = Math.max(a.z, Math.max(b.z, c.z))
-
-        //if average is below water, set to 0
-        if (avg < 0) {
-            a.z = 0
-            b.z = 0
-            c.z = 0
-        }
-
-        //Assign colors to the faces
-        if (max <= 0) return face.color.set(0x002171) // water
-        if (max <= 1.5) return face.color.set(0x5472d3) // Base
-        if (max <= 3.5) return face.color.set(0x4fc3f7)// Mid
-        if (max <= 5) return face.color.set(0x29b6f6) // Mid-Top
-        face.color.set(0x039be5) // Tops
-    })
-
-    planeGeo.colorsNeedUpdate = true
-    planeGeo.verticesNeedUpdate = true
-    planeGeo.computeFlatVertexNormals()
-
-    const mesh = new THREE.Mesh(planeGeo, new THREE.MeshLambertMaterial({
-        vertexColors: THREE.VertexColors,
-        flatShading: true,
-    }))
-    mesh.position.x = 200
-    mesh.position.y = -50
-    mesh.position.z = -500
-
-    mesh.receiveShadow = true
-
-    mesh.scale.set(60, 60, 60) //Make the terrain larger
-    return mesh
-
-}
-
-
-/******************HELPERS************************** */
-
-/**
- * Helper map function
- */
-function map(val, smin, smax, emin, emax) {
-    const t = (val - smin) / (smax - smin)
-    return (emax - emin) * t + emin
-}
-
-/**
- * Helper conversion function
- */
-function degToRad(deg) {
-    return deg * Math.PI / 180
-}
-
-/**
- * Generates random float in a range
- * Receives the inclusive min and exclusive max limit
- */
-function getRandomFloat(min, max) {
-    return (Math.random() * (max - min) + min)
-}
-
-
-function changeTextColor(color) {
-    setTimeout(() => {
-        scoreText.css('color', color)
-    }, 550)
-}
-
-
-/**
- * Resizes the canvas when window is changed
- */
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
