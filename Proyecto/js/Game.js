@@ -1,3 +1,6 @@
+/**
+ * 
+ */
 class Game {
 
     constructor() {
@@ -18,6 +21,10 @@ class Game {
 
     }
 
+
+    /**
+     * 
+     */
     init() {
 
         // init score
@@ -63,6 +70,9 @@ class Game {
 
     }
 
+    /**
+     * 
+     */
     reset() {
 
         this.started = false

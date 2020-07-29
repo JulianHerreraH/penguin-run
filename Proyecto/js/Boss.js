@@ -6,7 +6,7 @@ class Boss {
 
         this.health = 350
         this.isPresent = false
-        this.trigger = 3 //Fishes for boss to appear
+        this.trigger = 5 //Fishes for boss to appear
         this.spikes = []
         this.attackActive = false
         this.introduced = false
@@ -124,6 +124,7 @@ class Boss {
         this.isPresent = false
         this.spikes = []
         this.mesh.position.y = -500
+        this.mesh.rotation.y = 0
     }
 
 }

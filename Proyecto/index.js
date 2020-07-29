@@ -4,13 +4,6 @@
 */
 
 
-
-
-
-// TODO: when orca kills you
-// oervall text color
-
-
 // Global objects
 let renderer = null,
     scene = null,

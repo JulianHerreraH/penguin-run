@@ -1,5 +1,8 @@
 // Adapted from: https://blog.mozvr.com/low-poly-style-terrain-generation/
 
+/**
+ * Environment class that inits game's area
+ */
 class Environment {
 
     constructor() {
@@ -10,18 +13,24 @@ class Environment {
         this.simplex = new SimplexNoise(5)
     }
 
+
     /**
-    * Utility function for the noise
-    */
+     * Utility function for the noise
+     * @param {number} nx
+     * @param {number} ny
+     */
     noise(nx, ny) {
         // Rescale from -1.0:+1.0 to 0.0:1.0
         return this.simplex.noise2D(nx, ny) / 2 + 0.5
     }
 
+
     /**
-    * Utility function for the noise
-    * Stacks noisefields
-    */
+     * Stacks noisefields
+     * @param {number} nx 
+     * @param {number} ny 
+     * @param {number} octaves 
+     */
     octave(nx, ny, octaves) {
 
         let val = 0
@@ -42,9 +51,10 @@ class Environment {
 
     }
 
+
     /**
-    * Generates a texture from the noise data
-    */
+     * Generates a texture from the noise data
+     */
     generateNoiseTexture() {
 
         // Hidden debug canvas to generate texture 
@@ -68,11 +78,13 @@ class Environment {
 
     }
 
+
     /**
-    * Generates a plane terrain from noise texture
-    * Receives the texture data
-    */
+     * Generates a plane terrain from noise texture
+     * @param {ImageData} data 
+     */
     generateTerrain(data) {
+        console.log(data)
 
         const planeGeo = new THREE.PlaneGeometry(data.width, data.height + 15, data.width, data.height + 1)
 
@@ -136,17 +148,20 @@ class Environment {
 
     }
 
-    /**
-    * Plane for the penguin
-    */
-    initPlane(t1, maxPlanes) {
 
-        t1.wrapS = THREE.RepeatWrapping
-        t1.wrapT = THREE.RepeatWrapping
-        t1.repeat.set(1, maxPlanes)
+    /**
+     * Generates plane for player-controlled penguin
+     * @param {Texture} texture 
+     * @param {number} maxPlanes 
+     */
+    initPlane(texture, maxPlanes) {
+
+        texture.wrapS = THREE.RepeatWrapping
+        texture.wrapT = THREE.RepeatWrapping
+        texture.repeat.set(1, maxPlanes)
 
         const mat = new THREE.MeshToonMaterial({
-            map: t1,
+            map: texture,
             side: THREE.DoubleSide
         })
 
@@ -180,8 +195,10 @@ class Environment {
 
     }
 
+
     /**
      * Initialize sun object that shines in the background
+     * @param {number} radius 
      */
     initSun(radius) {
         let mat = new THREE.MeshLambertMaterial({
@@ -218,7 +235,5 @@ class Environment {
 
         scene.add(mesh)
     }
-
-
 
 }
