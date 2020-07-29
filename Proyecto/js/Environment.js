@@ -93,7 +93,6 @@ class Environment {
      * @param {ImageData} data 
      */
     generateTerrain(data) {
-        console.log(data)
 
         const planeGeo = new THREE.PlaneGeometry(data.width, data.height + 15, data.width, data.height + 1)
 

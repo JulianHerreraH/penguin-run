@@ -3,9 +3,6 @@
     Graficas Computacionales
 */
 
-
-// comments 
-
 // Global objects
 let renderer = null,
     scene = null,
@@ -45,6 +42,10 @@ function update() {
 
     const scoreIncrement = 0.33
     const baseSpeed = 10
+    const basePenalty = 30
+
+    const planeLimitP = 106
+    const planeLimitN = -106
 
 
     // Logic for when the game starts
@@ -61,11 +62,11 @@ function update() {
 
         // CREATION OF OBSTACLES    
         if (Math.random() < 0.06 && game.obstacles.length < game.maxObstacles && !boss.isPresent)
-            createObstacle()
+            game.createObstacle()
 
         // Deal with score penalties
         if (game.score.toFixed() < 120)
-            game.collisionPenalty = 30
+            game.collisionPenalty = basePenalty
         else
             game.collisionPenalty = game.score.toFixed() * 0.21
 
@@ -80,8 +81,9 @@ function update() {
         // Slightly reduce the size of the collider
         playerCollider.expandByScalar(-3.8)
 
-
+        // Obstacles logic
         game.obstacles.forEach((obs, ndx) => {
+
             // Remove obstacle from the scene and array
             if (obs.mesh.position.z > camera.position.z) {
                 scene.remove(obs.mesh.parent) //parent is the gltf.scene
@@ -95,7 +97,7 @@ function update() {
 
             if (collision) {
 
-                if (obs.type == 'fish') {
+                if (obs.type == game.TYPES.friend) {
 
                     player.fishEaten += 1
                     // Change HTML text
@@ -114,13 +116,14 @@ function update() {
                         player.isInvulnerable = false
                     }, 2500)
 
-                } else if (obs.type == 'spike' && !player.isInvulnerable) {
+                } else if (obs.type == game.TYPES.enemy && !player.isInvulnerable) {
 
                     game.score -= game.collisionPenalty
                     scene.remove(obs.mesh.parent)
                     game.obstacles.splice(ndx, 1)
                     scoreText.css('color', 'red')
 
+                    // Reset color of  text
                     setTimeout(() => {
                         scoreText.css('color', 'white')
                     }, 550)
@@ -137,7 +140,7 @@ function update() {
         // MOVEMENT
         if (inputManager.moveLeft) {
 
-            if (player.mesh.position.x > -105)
+            if (player.mesh.position.x > planeLimitN)
                 player.mesh.position.x -= moveDistance
 
             if (player.mesh.rotation.y > -rotateAnglePlayer)
@@ -146,7 +149,7 @@ function update() {
 
         } if (inputManager.moveRight) {
 
-            if (player.mesh.position.x < 105)
+            if (player.mesh.position.x < planeLimitP)
                 player.mesh.position.x += moveDistance
 
             if (player.mesh.rotation.y < rotateAnglePlayer)
@@ -181,7 +184,7 @@ function update() {
 
             if (!boss.introduced) {
 
-                boss.playAudio('intro')
+                boss.playAudio(boss.AUDIOS.intro)
                 boss.introduced = true
 
                 // Titles
@@ -219,9 +222,11 @@ function update() {
                 boss.spikes.forEach((obs, ndx) => {
 
                     if (obs.position.z >= camera.position.z) {
+
                         scene.remove(obs.parent)
                         boss.spikes = []
                         boss.attackActive = false
+
                     } else {
                         obs.position.z += game.obstacleSpeed * boss.MULTIPLIERS.speed
                     }
@@ -267,8 +272,10 @@ function update() {
                     player.bullets.forEach((bullet, ndx) => {
 
                         if (bullet.mesh.position.z < boss.mesh.position.z - 100) {
+
                             scene.remove(bullet.mesh)
                             player.bullets.splice(ndx, 1)
+
                         } else {
                             bullet.mesh.position.z -= bullet.speed
                         }
@@ -279,7 +286,7 @@ function update() {
                         if (isHit) {
 
                             boss.health -= bullet.damage
-                            boss.playAudio('hit')
+                            boss.playAudio(boss.AUDIOS.hit)
 
                             scene.remove(bullet.mesh)
                             player.bullets.splice(ndx, 1)
@@ -290,8 +297,8 @@ function update() {
                 }
 
             } else {
-
-                boss.mesh.rotation.z -= delta * 2
+                // "Animation" for boss defeat
+                boss.mesh.rotation.z -= delta * 1.5
                 boss.onDeath()
 
             }
@@ -302,9 +309,11 @@ function update() {
 
     // Small animation for game over
     if (game.restarted) {
+
         player.mesh.position.y = 20
         player.mesh.rotation.y = degToRad(180)
         player.mesh.rotation.z += delta * 0.25
+
     }
 
     // Animations' mixers
@@ -314,16 +323,20 @@ function update() {
 
     // Change time value in shaders' uniforms
     if (environment.planeShader) {
+
         environment.planeShader.uniforms.time.value += delta * 0.2
         environment.sunShader.uniforms.time.value += delta * 0.05
+
     }
 
     // Move seagulls, reset position once they reach the screen limit
     seagulls.forEach((obj) => {
+
         if (obj.scene.children[0].position.x >= 4000) {
             obj.scene.children[0].position.x = obj.positionReset + getRandomFloat(-100, 100)
         }
         obj.scene.children[0].position.x += delta * 55
+
     })
 
 }
@@ -349,8 +362,9 @@ function run() {
     screenShake.update(camera)
 }
 
+
 /**
- * 
+ * Inits the main components of THREE JS and the game environment
  * @param {HTMLElement} canvas 
  */
 function createScene(canvas) {
@@ -390,8 +404,8 @@ function createScene(canvas) {
     directionalLight.shadow.camera.bottom = -400
     directionalLight.shadow.camera.near = 1
     directionalLight.shadow.camera.far = 10000
-    directionalLight.shadow.mapSize.width = 2048
-    directionalLight.shadow.mapSize.height = 2048
+    directionalLight.shadow.mapSize.width = 1024
+    directionalLight.shadow.mapSize.height = 1024
     // Add main light
     scene.add(directionalLight)
 
@@ -409,7 +423,7 @@ function createScene(canvas) {
     const progressBarElem = loadingElem.querySelector('.progressbar')
 
     // Textures and models to load
-    const planeTexture = textureLoader.load('../img/Project/plane.jpg')
+    const planeTexture = textureLoader.load('../img/Project/plane.png')
     const playerModelUrl = './models/Penguin/penguin.gltf'
     const bearUrl = './models/Bear/bear.gltf'
     const seagullUrl = './models/Seagull/seagull.gltf'
@@ -506,6 +520,7 @@ function createScene(canvas) {
 
         stats = new Stats();
         stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+        stats.domElement.style.cssText = 'position:absolute;bottom:0px;right:0px;'
         document.body.appendChild(stats.dom);
 
         // In case window is resized
@@ -528,6 +543,7 @@ function createScene(canvas) {
 
 }
 
+
 /**
  * Uses ScreenShake util to move camera
  * @param {Array} vector
@@ -536,7 +552,6 @@ function createScene(canvas) {
 function shakeCamera(vector, duration) {
     screenShake.shake(camera, new THREE.Vector3(...vector), duration)
 }
-
 
 
 /**
@@ -589,75 +604,3 @@ function loadGLTFModels(objs) {
     })
 
 }
-
-
-/**
- * Loads and adds a GLTF to use as obstacle
- */
-function createObstacle() {
-
-    let url
-    let type
-
-    const friend = 'fish'
-    const enemy = 'spike'
-
-    if (game.obstacleCounter == 18) {
-        type = friend
-        url = './models/Fish/fish.gltf'
-        game.obstacleCounter = 0
-    } else {
-        game.obstacleCounter += 1
-        type = enemy
-        url = './models/Spikes/spikeVertical.gltf'
-    }
-
-    let loader = new THREE.GLTFLoader()
-
-    loader.load(url, function (gltf) {
-
-        gltf.scene.traverse(function (object) {
-            if (object.isMesh) {
-                object.geometry.computeBoundingBox()
-                object.castShadow = true
-            }
-        })
-
-        let x = getRandomFloat(-105, 106)
-        let z = -980
-        let y
-
-        if (type == friend) {
-            y = 15
-            gltf.scene.children[0].scale.set(5, 5, 5)
-            gltf.scene.children[0].rotation.z = degToRad(90)
-
-        } else if (type == enemy) {
-            y = 80
-            gltf.scene.children[0].scale.set(15, 15, 15)
-            gltf.scene.children[0].rotation.z = Math.floor(getRandomFloat(0, 1.7)) == 0 ? degToRad(90) : 0
-            gltf.scene.children[0].rotation.x = degToRad(90)
-
-        }
-
-        while (game.lastObstaclePos == x) {
-            x = getRandomFloat(-105, 106)
-        }
-
-        gltf.scene.children[0].position.set(x, y, z)
-
-        game.lastObstaclePos = x
-
-        let obstacle = {
-            mesh: gltf.scene.children[0],
-            type
-        }
-
-        game.obstacles.push(obstacle)
-        scene.add(gltf.scene)
-
-    })
-
-
-}
-

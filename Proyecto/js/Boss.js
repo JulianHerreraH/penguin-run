@@ -1,5 +1,12 @@
+/**
+ * Class for Orczilla boss 
+ */
 class Boss {
 
+    /**
+     * 
+     * @param {Mesh} mesh 
+     */
     constructor(mesh) {
 
         this.mesh = mesh
@@ -22,8 +29,18 @@ class Boss {
             speed: 1.6
         }
 
+        this.AUDIOS = {
+            intro: './sounds/orca.mp3',
+            hit: './sounds/hit.mp3'
+        }
+
     }
 
+
+    /**
+     * Generates a wall of spikes attack to a given side 
+     * @param {string} side 
+     */
     attack(side) {
 
         let x
@@ -57,6 +74,11 @@ class Boss {
 
     }
 
+
+    /**
+     * Loads and creates a spike to a given position
+     * @param {number} posX 
+     */
     createSpike(posX) {
         let loader = new THREE.GLTFLoader()
         let url = './models/Spikes/spikeVertical.gltf'
@@ -93,15 +115,12 @@ class Boss {
 
     }
 
-    playAudio(type) {
 
-        let url
-
-        if (type == 'intro') {
-            url = './sounds/orca.mp3'
-        } else if (type == 'hit') {
-            url = './sounds/hit.mp3'
-        }
+    /**
+     * Loads and plays a given audio url
+     * @param {string} url 
+     */
+    playAudio(url) {
 
         const listener = new THREE.AudioListener()
         this.mesh.add(listener)
@@ -116,8 +135,11 @@ class Boss {
 
     }
 
-    onDeath() {
 
+    /**
+     * Resets HTML texts and boss once it dies
+     */
+    onDeath() {
 
         $('#message').text('Orczilla Retreated!')
         $('#boss').css('display', 'none')
@@ -133,9 +155,15 @@ class Boss {
             player.fishEaten = 0
 
         }, 2000)
+
     }
 
+
+    /**
+     * Resets boss area and data
+     */
     reset() {
+
         this.spikes.forEach((obs) => {
             scene.remove(obs.parent)
         })
@@ -149,7 +177,8 @@ class Boss {
         this.isPresent = false
         this.spikes = []
         this.mesh.position.y = -500
-        this.mesh.rotation.y = 0
+        this.mesh.rotation.z = 0
+
     }
 
 }

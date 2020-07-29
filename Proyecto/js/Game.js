@@ -1,5 +1,5 @@
 /**
- * 
+ * Game class holds all relevant data to the game´s functionality
  */
 class Game {
 
@@ -19,11 +19,16 @@ class Game {
         this.score = 0
         this.leveler = 500
 
+        this.TYPES = {
+            friend: 'fish',
+            enemy: 'spike'
+        }
+
     }
 
 
     /**
-     * 
+     * Initializes game data and HTML texts. Listens for player input
      */
     init() {
 
@@ -70,8 +75,9 @@ class Game {
 
     }
 
+
     /**
-     * 
+     * Resets game data and HTML texts. Player and boss too
      */
     reset() {
 
@@ -102,10 +108,77 @@ class Game {
 
         player.fishEaten = 0
 
+        // Resets boss and its data
         boss.reset()
     }
 
 
+    /**
+    * Loads and adds a GLTF to use as obstacle
+    */
+    createObstacle() {
 
+        let url
+        let type
+
+        if (this.obstacleCounter == 18) {
+            type = this.TYPES.friend
+            url = './models/Fish/fish.gltf'
+            game.obstacleCounter = 0
+        } else {
+            type = this.TYPES.enemy
+            url = './models/Spikes/spikeVertical.gltf'
+            game.obstacleCounter += 1
+        }
+
+        let loader = new THREE.GLTFLoader()
+
+        loader.load(url, gltf => {
+
+            gltf.scene.traverse(function (object) {
+                if (object.isMesh) {
+                    object.geometry.computeBoundingBox()
+                    object.castShadow = true
+                }
+            })
+
+            let x = getRandomFloat(-105, 106)
+            let z = -980
+            let y
+
+            if (type == this.TYPES.friend) {
+
+                y = 15
+                gltf.scene.children[0].scale.set(5, 5, 5)
+                gltf.scene.children[0].rotation.z = degToRad(90)
+
+            } else if (type == this.TYPES.enemy) {
+
+                y = 80
+                gltf.scene.children[0].scale.set(15, 15, 15)
+                gltf.scene.children[0].rotation.z = Math.floor(getRandomFloat(0, 1.7)) == 0 ? degToRad(90) : 0
+                gltf.scene.children[0].rotation.x = degToRad(90)
+
+            }
+
+            while (this.lastObstaclePos == x) {
+                x = getRandomFloat(-105, 106)
+            }
+
+            gltf.scene.children[0].position.set(x, y, z)
+
+            this.lastObstaclePos = x
+
+            let obstacle = {
+                mesh: gltf.scene.children[0],
+                type
+            }
+
+            this.obstacles.push(obstacle)
+            scene.add(gltf.scene)
+
+        })
+
+    }
 
 }

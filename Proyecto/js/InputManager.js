@@ -1,3 +1,6 @@
+/**
+ * InputManager class for the state of user's inputs
+ */
 class InputManager {
 
     constructor() {
@@ -7,6 +10,11 @@ class InputManager {
         this.canShoot = false
     }
 
+
+    /**
+     * Checks event triggered by a key down listener
+     * @param {KeyboardEvent} event
+     */
     onKeyDown(event) {
         switch (event.keyCode) {
 
@@ -32,6 +40,11 @@ class InputManager {
 
     }
 
+
+    /**
+     * Checks event triggered by a key up listener
+     * @param {KeyboardEvent} event 
+     */
     onKeyUp(event) {
 
         switch (event.keyCode) {
@@ -49,8 +62,5 @@ class InputManager {
         }
 
     }
-
-    o
-
 
 }

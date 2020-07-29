@@ -1,8 +1,12 @@
 /**
- * PLayer class for user-controlled penguin
+ * Player class for user-controlled penguin
  */
 class Player {
 
+    /**
+     * 
+     * @param {Mesh} mesh 
+     */
     constructor(mesh) {
 
         this.mesh = mesh
@@ -20,21 +24,21 @@ class Player {
 
     }
 
+
     /**
      * Instances a bullet shot from player position
      */
     shoot() {
 
-
-        let pos = this.mesh.position
+        const pos = this.mesh.position
+        const y = 40
+        const zOffset = 10
 
         let geo = new THREE.SphereBufferGeometry(9, 6, 5)
         let mat = new THREE.MeshToonMaterial({ color: environment.COLORS.ice })
         let mesh = new THREE.Mesh(geo, mat)
 
-        const y = 40
-        const zOffset = 10
-
+        mesh.castShadow = true
         mesh.position.set(pos.x, y, pos.z - zOffset)
 
         let bullet = {
