@@ -69,6 +69,14 @@ body {
   display: inline-block!important;
 }
 
+#highScore {
+  position: absolute;
+  top: 10%;
+  right: 1%;
+  text-align: center;
+  display: none;
+}
+
 
 #loading {
 color: white;

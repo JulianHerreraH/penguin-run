@@ -17,6 +17,7 @@ class Game {
         this.collisionPenalty = 0
 
         this.score = 0
+        this.highScore = 0
         this.leveler = 500
 
         this.TYPES = {
@@ -43,7 +44,7 @@ class Game {
         scoreText.fadeIn('slow')
 
         if (!this.restarted) {
-            console.log('music')
+
             const listener = new THREE.AudioListener()
             camera.add(listener)
             const sound = new THREE.Audio(listener)
@@ -67,10 +68,12 @@ class Game {
 
         }
         else {
+
             this.restarted = false
             player.mesh.position.x = 0
             player.mesh.position.y = 10
             player.mesh.rotation.set(degToRad(-90), 0, degToRad(90))
+
         }
 
     }
@@ -94,6 +97,7 @@ class Game {
         $('#play-text').css('display', 'block')
         $('#ammo-div').fadeOut('fast')
         $('#fish-div').fadeOut('fast')
+        $('#highScore').text(`High Score: ${this.highScore.toFixed()}`)
         $('#fish-text').text('0')
 
         scoreText.css('display', 'none')

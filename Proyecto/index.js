@@ -43,6 +43,7 @@ function update() {
     const scoreIncrement = 0.33
     const baseSpeed = 10
     const basePenalty = 30
+    const obstacleChance = 0.06
 
     const planeLimitP = 106
     const planeLimitN = -106
@@ -53,15 +54,22 @@ function update() {
 
         // GAME OVER
         if (game.score <= 0) {
+            $('#highScore').text(game.highScore.toFixed())
+            localStorage.setItem('high_score', game.highScore)
             game.reset()
         }
+
+        // Check high score
+        if (game.highScore < game.score)
+            gamehighScore = game.score
+
 
         game.score += scoreIncrement
         // Update score text element
         scoreText.text(game.score.toFixed())
 
         // CREATION OF OBSTACLES    
-        if (Math.random() < 0.06 && game.obstacles.length < game.maxObstacles && !boss.isPresent)
+        if (Math.random() < obstacleChance && game.obstacles.length < game.maxObstacles && !boss.isPresent)
             game.createObstacle()
 
         // Deal with score penalties
@@ -117,6 +125,10 @@ function update() {
                     }, 2500)
 
                 } else if (obs.type == game.TYPES.enemy && !player.isInvulnerable) {
+
+                    //Check high score
+                    if (game.highScore < game.score)
+                        game.highScore = game.score
 
                     game.score -= game.collisionPenalty
                     scene.remove(obs.mesh.parent)
@@ -236,6 +248,11 @@ function update() {
 
                     if (collision) {
 
+                        //Check high score
+                        if (game.highScore < game.score)
+                            game.highScore = game.score
+
+
                         game.score -= game.collisionPenalty * boss.MULTIPLIERS.collision
                         scene.remove(obs.parent)
                         boss.spikes.splice(ndx, 1)
@@ -300,7 +317,6 @@ function update() {
                 // "Animation" for boss defeat
                 boss.mesh.rotation.z -= delta * 1.5
                 boss.onDeath()
-
             }
 
         }
@@ -430,7 +446,6 @@ function createScene(canvas) {
     const walrusUrl = './models/Walrus/walrus.gltf'
     const orczillaUrl = './models/Orczilla/scene.gltf'
 
-
     // Define models' properties
     let objects = [
         player = {
@@ -494,6 +509,16 @@ function createScene(canvas) {
         game = new Game()
         inputManager = new InputManager()
         environment = new Environment()
+
+        //Set or look for local storage high score
+        const localStorageHigh = parseInt(localStorage.getItem('high_score'))
+        if (!localStorageHigh) {
+            localStorage.setItem('high_score', 0)
+        } else {
+            game.highScore = localStorageHigh
+            $('#highScore').fadeIn()
+            $('#highScore').text(`High Score: ${localStorageHigh.toFixed()}`)
+        }
 
         // Show play plane
         environment.initPlane(planeTexture, 6)
