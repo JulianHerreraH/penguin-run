@@ -515,7 +515,7 @@ function createScene(canvas) {
         if (!localStorageHigh) {
             localStorage.setItem('high_score', 0)
             $('#highScore').fadeIn()
-            $('#highScore').text(`High Score: ${localStorageHigh.toFixed()}`)
+            $('#highScore').text('High Score: 0')
         } else {
             game.highScore = localStorageHigh
             $('#highScore').fadeIn()
